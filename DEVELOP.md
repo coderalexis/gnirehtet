@@ -140,9 +140,9 @@ Some configuration options may be passed as extra parameters, converted to a
 to use.
 
 The very first time, Android requests to the user the permission to enable the
-VPN. In that case, the API requires to call
-[`startActivityForResult`], so we need an [`Activity`]: this is the purpose
-of [`AuthorizationActivity`].
+VPN. In that case, the API requires to call [`startActivityForResult`]. This
+authorization flow is handled in [`GnirehtetActivity`], which then starts
+[`GnirehtetService`].
 
 [`RelayTunnel`] manages one connection to the relay server.
 [`PersistentRelayTunnel`] manages [`RelayTunnel`] instances to handle
@@ -160,7 +160,6 @@ of [`IPPacketOutputStream`].
 [`VpnConfiguration`]: app/src/main/java/com/genymobile/gnirehtet/VpnConfiguration.java
 [`startActivityForResult`]: https://developer.android.com/reference/android/app/Activity.html#startActivityForResult%28android.content.Intent,%20int%29
 [`Activity`]: https://developer.android.com/reference/android/app/Activity.html
-[`AuthorizationActivity`]: app/src/main/java/com/genymobile/gnirehtet/AuthorizationActivity.java
 [`RelayTunnel`]: app/src/main/java/com/genymobile/gnirehtet/RelayTunnel.java
 [`PersistentRelayTunnel`]: app/src/main/java/com/genymobile/gnirehtet/PersistentRelayTunnel.java
 [`IPPacketOutputStream`]: app/src/main/java/com/genymobile/gnirehtet/IPPacketOutputStream.java
