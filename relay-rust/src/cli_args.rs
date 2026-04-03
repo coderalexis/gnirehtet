@@ -63,7 +63,10 @@ impl CommandLineArguments {
                     return Err(String::from("Port already set"));
                 }
                 if let Some(value) = iter.next() {
-                    port = value.into().parse().unwrap();
+                    let value = value.into();
+                    port = value
+                        .parse::<u16>()
+                        .map_err(|_| format!("Invalid port: {}", value))?;
                     if port == 0 {
                         return Err(String::from("Invalid port: 0"));
                     }
@@ -108,7 +111,7 @@ impl CommandLineArguments {
 mod tests {
     use super::*;
 
-    const ACCEPT_ALL: u8 = PARAM_SERIAL | PARAM_DNS_SERVERS | PARAM_ROUTES;
+    const ACCEPT_ALL: u8 = PARAM_SERIAL | PARAM_DNS_SERVERS | PARAM_ROUTES | PARAM_PORT;
 
     #[test]
     fn test_no_args() {
@@ -176,6 +179,44 @@ mod tests {
     #[test]
     fn test_no_routes_parameter() {
         let raw_args = vec!["-r"];
+        assert!(CommandLineArguments::parse(ACCEPT_ALL, raw_args).is_err());
+    }
+
+    #[test]
+    fn test_port_parameter() {
+        let raw_args = vec!["-p", "1234"];
+        let args = CommandLineArguments::parse(ACCEPT_ALL, raw_args).unwrap();
+        assert_eq!(1234, args.port());
+    }
+
+    #[test]
+    fn test_default_port() {
+        let raw_args = vec!["myserial"];
+        let args = CommandLineArguments::parse(ACCEPT_ALL, raw_args).unwrap();
+        assert_eq!(DEFAULT_PORT, args.port());
+    }
+
+    #[test]
+    fn test_no_port_parameter() {
+        let raw_args = vec!["-p"];
+        assert!(CommandLineArguments::parse(ACCEPT_ALL, raw_args).is_err());
+    }
+
+    #[test]
+    fn test_invalid_port_value() {
+        let raw_args = vec!["-p", "abc"];
+        assert!(CommandLineArguments::parse(ACCEPT_ALL, raw_args).is_err());
+    }
+
+    #[test]
+    fn test_invalid_port_zero() {
+        let raw_args = vec!["-p", "0"];
+        assert!(CommandLineArguments::parse(ACCEPT_ALL, raw_args).is_err());
+    }
+
+    #[test]
+    fn test_invalid_port_too_large() {
+        let raw_args = vec!["-p", "65536"];
         assert!(CommandLineArguments::parse(ACCEPT_ALL, raw_args).is_err());
     }
 }

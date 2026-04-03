@@ -64,7 +64,11 @@ public class CommandLineArguments {
                 if (i == args.length - 1) {
                     throw new IllegalArgumentException("Missing -p parameter");
                 }
-                arguments.port = Integer.parseInt(args[i + 1]);
+                try {
+                    arguments.port = Integer.parseInt(args[i + 1]);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid port: " + args[i + 1], e);
+                }
                 if (arguments.port <= 0 || arguments.port >= 65536) {
                     throw new IllegalArgumentException("Invalid port: " + arguments.port);
                 }
