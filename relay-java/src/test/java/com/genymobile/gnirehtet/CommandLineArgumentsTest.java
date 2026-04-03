@@ -22,7 +22,7 @@ import org.junit.Test;
 public class CommandLineArgumentsTest {
 
     private static final int ACCEPT_ALL = CommandLineArguments.PARAM_SERIAL | CommandLineArguments.PARAM_DNS_SERVER
-            | CommandLineArguments.PARAM_ROUTES;
+            | CommandLineArguments.PARAM_ROUTES | CommandLineArguments.PARAM_PORT;
 
     @Test
     public void testNoArgs() {
@@ -83,5 +83,37 @@ public class CommandLineArgumentsTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNoRoutesParameter() {
         CommandLineArguments.parse(ACCEPT_ALL, "-r");
+    }
+
+    @Test
+    public void testPortParameter() {
+        CommandLineArguments args = CommandLineArguments.parse(ACCEPT_ALL, "-p", "1234");
+        Assert.assertEquals(1234, args.getPort());
+    }
+
+    @Test
+    public void testDefaultPort() {
+        CommandLineArguments args = CommandLineArguments.parse(ACCEPT_ALL, "myserial");
+        Assert.assertEquals(CommandLineArguments.DEFAULT_PORT, args.getPort());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNoPortParameter() {
+        CommandLineArguments.parse(ACCEPT_ALL, "-p");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidPortStringParameter() {
+        CommandLineArguments.parse(ACCEPT_ALL, "-p", "abc");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidPortZeroParameter() {
+        CommandLineArguments.parse(ACCEPT_ALL, "-p", "0");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidPortTooLargeParameter() {
+        CommandLineArguments.parse(ACCEPT_ALL, "-p", "65536");
     }
 }
