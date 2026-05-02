@@ -40,7 +40,7 @@ pub trait Connection {
     fn is_closed(&self) -> bool;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConnectionId {
     protocol: Protocol,
     source_ip: u32,

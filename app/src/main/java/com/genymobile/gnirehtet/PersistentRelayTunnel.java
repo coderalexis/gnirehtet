@@ -21,6 +21,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -107,7 +108,10 @@ public class PersistentRelayTunnel implements Tunnel {
 
     private static long computeRetryDelayMs(int failures) {
         int exponent = Math.min(4, Math.max(0, failures - 1));
-        return Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS << exponent);
+        long baseDelay = Math.min(MAX_RETRY_DELAY_MS, BASE_RETRY_DELAY_MS << exponent);
+        // add up to +25% jitter to avoid synchronized retry bursts
+        long jitter = ThreadLocalRandom.current().nextLong(Math.max(1L, baseDelay / 4));
+        return Math.min(MAX_RETRY_DELAY_MS, baseDelay + jitter);
     }
 
     private void waitBeforeRetry(int failures) throws InterruptedIOException {

@@ -21,6 +21,9 @@ pub const PARAM_ROUTES: u8 = 1 << 2;
 pub const PARAM_PORT: u8 = 1 << 3;
 
 pub const DEFAULT_PORT: u16 = 31416;
+const ERROR_DUPLICATE_DNS: &str = "Duplicate option: -d";
+const ERROR_DUPLICATE_ROUTES: &str = "Duplicate option: -r";
+const ERROR_DUPLICATE_PORT: &str = "Duplicate option: -p";
 
 pub struct CommandLineArguments {
     serial: Option<String>,
@@ -42,25 +45,25 @@ impl CommandLineArguments {
             let arg = arg.into();
             if (accepted_parameters & PARAM_DNS_SERVERS) != 0 && "-d" == arg {
                 if dns_servers.is_some() {
-                    return Err(String::from("DNS servers already set"));
+                    return Err(String::from(ERROR_DUPLICATE_DNS));
                 }
                 if let Some(value) = iter.next() {
                     dns_servers = Some(value.into());
                 } else {
-                    return Err(String::from("Missing -d parameter"));
+                    return Err(String::from("Missing parameter for -d"));
                 }
             } else if (accepted_parameters & PARAM_ROUTES) != 0 && "-r" == arg {
                 if routes.is_some() {
-                    return Err(String::from("Routes already set"));
+                    return Err(String::from(ERROR_DUPLICATE_ROUTES));
                 }
                 if let Some(value) = iter.next() {
                     routes = Some(value.into());
                 } else {
-                    return Err(String::from("Missing -r parameter"));
+                    return Err(String::from("Missing parameter for -r"));
                 }
             } else if (accepted_parameters & PARAM_PORT) != 0 && "-p" == arg {
                 if port != 0 {
-                    return Err(String::from("Port already set"));
+                    return Err(String::from(ERROR_DUPLICATE_PORT));
                 }
                 if let Some(value) = iter.next() {
                     let value = value.into();
@@ -71,7 +74,7 @@ impl CommandLineArguments {
                         return Err(String::from("Invalid port: 0"));
                     }
                 } else {
-                    return Err(String::from("Missing -p parameter"));
+                    return Err(String::from("Missing parameter for -p"));
                 }
             } else if (accepted_parameters & PARAM_SERIAL) != 0 && serial.is_none() {
                 serial = Some(arg);

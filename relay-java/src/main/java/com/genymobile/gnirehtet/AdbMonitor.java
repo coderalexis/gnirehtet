@@ -46,6 +46,7 @@ public class AdbMonitor {
     private static final int OKAY_SIZE = 4;
     private static final long RETRY_DELAY_ADB_DAEMON_OK = 1000;
     private static final long RETRY_DELAY_ADB_DAEMON_KO = 5000;
+    private static final long RETRY_DELAY_MAX = 30000;
 
     private List<String> connectedDevices = new ArrayList<>();
 
@@ -59,12 +60,15 @@ public class AdbMonitor {
     }
 
     public void monitor() {
+        int failures = 0;
         while (true) {
             try {
                 trackDevices();
+                failures = 0;
             } catch (Exception e) {
                 Log.e(TAG, "Failed to monitor adb devices", e);
-                repairAdbDaemon();
+                failures++;
+                repairAdbDaemon(failures);
             }
         }
     }
@@ -193,12 +197,18 @@ public class AdbMonitor {
         return result;
     }
 
-    private static void repairAdbDaemon() {
+    private static void repairAdbDaemon(int failures) {
         if (startAdbDaemon()) {
-            sleep(RETRY_DELAY_ADB_DAEMON_OK);
+            sleep(computeRetryDelay(RETRY_DELAY_ADB_DAEMON_OK, failures));
         } else {
-            sleep(RETRY_DELAY_ADB_DAEMON_KO);
+            sleep(computeRetryDelay(RETRY_DELAY_ADB_DAEMON_KO, failures));
         }
+    }
+
+    private static long computeRetryDelay(long baseDelay, int failures) {
+        int exponent = Math.min(5, Math.max(0, failures - 1));
+        long factor = 1L << exponent;
+        return Math.min(RETRY_DELAY_MAX, baseDelay * factor);
     }
 
     private static boolean startAdbDaemon() {
