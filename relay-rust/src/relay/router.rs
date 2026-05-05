@@ -16,6 +16,7 @@
 
 use log::*;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::io;
 use std::rc::{Rc, Weak};
 
@@ -32,8 +33,8 @@ const TAG: &str = "Router";
 
 pub struct Router {
     client: Weak<RefCell<Client>>,
-    // there are typically only few connections per client, HashMap would be less efficient
     connections: Vec<Rc<RefCell<dyn Connection>>>,
+    connections_by_id: HashMap<ConnectionId, usize>,
 }
 
 impl Router {
@@ -41,6 +42,7 @@ impl Router {
         Self {
             client: Weak::new(),
             connections: Vec::new(),
+            connections_by_id: HashMap::new(),
         }
     }
 
@@ -104,9 +106,10 @@ impl Router {
             Some(index) => index,
             None => {
                 let connection =
-                    Self::create_connection(selector, id, self.client.clone(), ipv4_packet)?;
+                    Self::create_connection(selector, id.clone(), self.client.clone(), ipv4_packet)?;
                 let index = self.connections.len();
                 self.connections.push(connection);
+                self.connections_by_id.insert(id, index);
                 index
             }
         };
@@ -144,9 +147,7 @@ impl Router {
     }
 
     fn find_index(&self, id: &ConnectionId) -> Option<usize> {
-        self.connections
-            .iter()
-            .position(|connection| connection.borrow().id() == id)
+        self.connections_by_id.get(id).copied()
     }
 
     pub fn remove(&mut self, connection: &dyn Connection) {
@@ -164,6 +165,7 @@ impl Router {
             connection.id()
         );
         self.connections.swap_remove(index);
+        self.reindex_after_swap_remove(index);
     }
 
     pub fn clear(&mut self, selector: &mut Selector) {
@@ -171,6 +173,7 @@ impl Router {
             connection.borrow_mut().close(selector);
         }
         self.connections.clear();
+        self.connections_by_id.clear();
     }
 
     pub fn clean_expired_connections(&mut self, selector: &mut Selector) {
@@ -192,7 +195,16 @@ impl Router {
             };
             if expired {
                 self.connections.swap_remove(i);
+                self.reindex_after_swap_remove(i);
             }
+        }
+    }
+
+    fn reindex_after_swap_remove(&mut self, removed_index: usize) {
+        self.connections_by_id.retain(|_, index| *index != removed_index);
+        if removed_index < self.connections.len() {
+            let moved_id = self.connections[removed_index].borrow().id().clone();
+            self.connections_by_id.insert(moved_id, removed_index);
         }
     }
 }

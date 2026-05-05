@@ -19,7 +19,9 @@ package com.genymobile.gnirehtet.relay;
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Router {
 
@@ -30,6 +32,7 @@ public class Router {
 
     // there are typically only few connections per client, HashMap would be less efficient
     private final List<Connection> connections = new ArrayList<>();
+    private final Map<ConnectionId, Connection> connectionsById = new HashMap<>();
 
     public Router(Client client, Selector selector) {
         this.client = client;
@@ -58,6 +61,7 @@ public class Router {
         if (connection == null) {
             connection = createConnection(id, ipv4Header, transportHeader);
             connections.add(connection);
+            connectionsById.put(id, connection);
         }
         return connection;
     }
@@ -74,12 +78,7 @@ public class Router {
     }
 
     private Connection find(ConnectionId id) {
-        for (Connection connection : connections) {
-            if (id.equals(connection.getId())) {
-                return connection;
-            }
-        }
-        return null;
+        return connectionsById.get(id);
     }
 
     public void clear() {
@@ -87,12 +86,14 @@ public class Router {
             connection.disconnect();
         }
         connections.clear();
+        connectionsById.clear();
     }
 
     public void remove(Connection connection) {
         if (!connections.remove(connection)) {
             throw new AssertionError("Removed a connection unknown from the router");
         }
+        connectionsById.remove(connection.getId());
     }
 
     public void cleanExpiredConnections() {
@@ -102,6 +103,7 @@ public class Router {
                 Log.d(TAG, "Remove expired connection: " + connection.getId());
                 connection.disconnect();
                 connections.remove(i);
+                connectionsById.remove(connection.getId());
             }
         }
     }

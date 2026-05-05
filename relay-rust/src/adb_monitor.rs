@@ -48,6 +48,7 @@ impl AdbMonitor {
     const BUFFER_SIZE: usize = 1024;
     const RETRY_DELAY_ADB_DAEMON_OK: u64 = 1000;
     const RETRY_DELAY_ADB_DAEMON_KO: u64 = 5000;
+    const RETRY_DELAY_MAX_MS: u64 = 30000;
 
     pub fn new(callback: Box<dyn AdbMonitorCallback>) -> Self {
         Self {
@@ -58,10 +59,14 @@ impl AdbMonitor {
     }
 
     pub fn monitor(&mut self) {
+        let mut failures = 0u32;
         loop {
             if let Err(err) = self.track_devices() {
                 error!(target: TAG, "Failed to monitor adb devices: {}", err);
-                Self::repair_adb_daemon();
+                failures += 1;
+                Self::repair_adb_daemon(failures);
+            } else {
+                failures = 0;
             }
         }
     }
@@ -197,12 +202,24 @@ impl AdbMonitor {
         })
     }
 
-    fn repair_adb_daemon() {
+    fn repair_adb_daemon(failures: u32) {
         if Self::start_adb_daemon() {
-            thread::sleep(Duration::from_millis(Self::RETRY_DELAY_ADB_DAEMON_OK));
+            thread::sleep(Duration::from_millis(Self::compute_retry_delay(
+                Self::RETRY_DELAY_ADB_DAEMON_OK,
+                failures,
+            )));
         } else {
-            thread::sleep(Duration::from_millis(Self::RETRY_DELAY_ADB_DAEMON_KO));
+            thread::sleep(Duration::from_millis(Self::compute_retry_delay(
+                Self::RETRY_DELAY_ADB_DAEMON_KO,
+                failures,
+            )));
         }
+    }
+
+    fn compute_retry_delay(base_delay: u64, failures: u32) -> u64 {
+        let exponent = failures.saturating_sub(1).min(5);
+        let factor = 1u64 << exponent;
+        (base_delay.saturating_mul(factor)).min(Self::RETRY_DELAY_MAX_MS)
     }
 
     fn start_adb_daemon() -> bool {

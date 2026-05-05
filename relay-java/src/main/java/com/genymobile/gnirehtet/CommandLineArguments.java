@@ -29,6 +29,9 @@ public class CommandLineArguments {
     public static final int PARAM_PORT = 1 << 3;
 
     public static final int DEFAULT_PORT = 31416;
+    private static final String ERROR_DUPLICATE_DNS = "Duplicate option: -d";
+    private static final String ERROR_DUPLICATE_ROUTES = "Duplicate option: -r";
+    private static final String ERROR_DUPLICATE_PORT = "Duplicate option: -p";
 
     private int port;
     private String serial;
@@ -41,28 +44,28 @@ public class CommandLineArguments {
             String arg = args[i];
             if ((acceptedParameters & PARAM_DNS_SERVER) != 0 && "-d".equals(arg)) {
                 if (arguments.dnsServers != null) {
-                    throw new IllegalArgumentException("DNS servers already set");
+                    throw new IllegalArgumentException(ERROR_DUPLICATE_DNS);
                 }
                 if (i == args.length - 1) {
-                    throw new IllegalArgumentException("Missing -d parameter");
+                    throw new IllegalArgumentException("Missing parameter for -d");
                 }
                 arguments.dnsServers = args[i + 1];
                 ++i; // consume the -d parameter
             } else if ((acceptedParameters & PARAM_ROUTES) != 0 && "-r".equals(arg)) {
                 if (arguments.routes != null) {
-                    throw new IllegalArgumentException("Routes already set");
+                    throw new IllegalArgumentException(ERROR_DUPLICATE_ROUTES);
                 }
                 if (i == args.length - 1) {
-                    throw new IllegalArgumentException("Missing -r parameter");
+                    throw new IllegalArgumentException("Missing parameter for -r");
                 }
                 arguments.routes = args[i + 1];
                 ++i; // consume the -r parameter
             } else if ((acceptedParameters & PARAM_PORT) != 0 && "-p".equals(arg)) {
                 if (arguments.port != 0) {
-                    throw new IllegalArgumentException("Port already set");
+                    throw new IllegalArgumentException(ERROR_DUPLICATE_PORT);
                 }
                 if (i == args.length - 1) {
-                    throw new IllegalArgumentException("Missing -p parameter");
+                    throw new IllegalArgumentException("Missing parameter for -p");
                 }
                 try {
                     arguments.port = Integer.parseInt(args[i + 1]);
